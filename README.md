@@ -1,52 +1,27 @@
-# sanfoundry-scraper
+# 📚 sanfoundry-scraper
 
-Extracts all MCQs of a subject that you input the link of.
+A **Python library** for efficiently scraping Multiple Choice Questions (MCQs) from Sanfoundry.
 
-run the main.py file after getting the code using the Download zip button or following this [link](https://github.com/raprocks/sanfoundry-scraper/archive/master.zip).
+It extracts **all MCQs** of a subject that you input the link of. [cite_start]The output is a single, aggregated HTML file, making it easier to "study" offline.
 
-just run main.py using the following command
+---
 
-```bash
-python main.py
-```
+## ✨ Features
 
-or
+* [cite_start]**Subject-Level Scraping:** Input the main subject page URL (e.g., for 1000 questions) and the script automatically scrapes all linked quiz pages.
+* [cite_start]**Multithreading Support:** Utilizes multithreading to drastically reduce scraping time[cite: 3].
+    * *Example Performance:* One test run showed a reduction from ~50 seconds (normal) to **~17 seconds** (with 10 workers) on a 1000-question quiz.
+* [cite_start]**HTML Output:** Saves all aggregated content into a single, clean HTML file.
+* [cite_start]**MathJax Ready:** Injects MathJax scripts into the output HTML, ensuring mathematical equations and complex symbols render correctly in your browser[cite: 14].
+* [cite_start]**Customizable Workers:** Control the number of concurrent threads used for scraping.
 
-```bash
-python main.py --url {url-of-quiz}
-```
+---
 
-this scrapper also uses multithreading
+## 🚀 Quick Start
 
-```bash
-python main.py --url {url-of-quiz} --thread --workers 15
-```
+### 1. Installation
 
-Here workers are the number of threads. Default workers are 5 .
-
-You can change by passing `--workers {thread-choice}` .
-
-More workers can cause unstability
-
-Input the URL of the Subject (for example, "https://www.sanfoundry.com/1000-object-oriented-programming-oops-questions-answers/") and run it to get a file in a folder named
-`Saved_MCQs` of all the MCQs of the subject.
-
-run the following command if you are using the program for the first time.
+[cite_start]Run the following command to install the required Python libraries (`bs4`, `requests`, `lxml`):
 
 ```bash
 pip install -r requirements.txt
-```
-
-and
-
-```bash
-python main.py --help
-```
-
-to install requirements
-
-LOG: This is getting traction hehe so gonna make it better to use and better at output
-
-1. PDF Output instead of HTML or maybe optional idk
-2. good docs 💀
-3. plain text output format with just questions and answers in txt. easier to "study" xD.
