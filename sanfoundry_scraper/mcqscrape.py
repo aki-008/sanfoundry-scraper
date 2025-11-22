@@ -5,7 +5,16 @@ import requests
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import json
 
+def write_to_json(data: list, filename):
+    if not os.path.exists("Saved_MCQs"):
+        os.mkdir("Saved_MCQs")
+    
+    with open(f"./Saved_MCQs/{filename}.json", "w+", encoding="utf-8") as file:
+        # Use json.dump for saving the list of question dictionaries
+        json.dump(data, file, indent=4)
+        print(f"\nSuccessfully saved {len(data)} MCQs to ./Saved_MCQs/{filename}.json")
 # --- Helper: Robust Session Creator ---
 def get_session():
     retry_strategy = Retry(
@@ -98,63 +107,63 @@ def mcqscrape_json(url: str):
     return mcqs
 
 
-def mcqscrape_html(url: str) -> str:
-    # Recursive case for subject pages (URLs containing '1000')
-    if '1000' in url:
-        pages = pagescrape(url)
-        mega_html = ''
-        if not pages:
-            print("No pages found (Block or Error).")
-            return ''
+# def mcqscrape_html(url: str) -> str:
+#     # Recursive case for subject pages (URLs containing '1000')
+#     if '1000' in url:
+#         pages = pagescrape(url)
+#         mega_html = ''
+#         if not pages:
+#             print("No pages found (Block or Error).")
+#             return ''
             
-        for k, v in pages.items():
-            print("getting", k, "from ->", v, end=' ... ')
-            mega_html += mcqscrape_html(v)
-            print("Done!")
+#         for k, v in pages.items():
+#             print("getting", k, "from ->", v, end=' ... ')
+#             mega_html += mcqscrape_html(v)
+#             print("Done!")
             
-        # Avoid writing empty files
-        if mega_html:
-            write_to_html(BeautifulSoup(mega_html, 'lxml'), url.split('/')[-2])
-        return ''
+#         # Avoid writing empty files
+#         if mega_html:
+#             write_to_html(BeautifulSoup(mega_html, 'lxml'), url.split('/')[-2])
+#         return ''
 
-    # Base case: Scrape individual MCQ page
-    session = get_session()
-    try:
-        res = session.get(url, timeout=10)
-        if res.status_code == 403:
-            print(f"\n[BLOCKED 403] {url}")
-            return ''
-        res.raise_for_status()
-    except Exception as e:
-        print(f"Error scraping {url}: {e}")
-        return ''
+#     # Base case: Scrape individual MCQ page
+#     session = get_session()
+#     try:
+#         res = session.get(url, timeout=10)
+#         if res.status_code == 403:
+#             print(f"\n[BLOCKED 403] {url}")
+#             return ''
+#         res.raise_for_status()
+#     except Exception as e:
+#         print(f"Error scraping {url}: {e}")
+#         return ''
 
-    soup = BeautifulSoup(res.content, 'lxml')
-    content = soup.find('div', class_='entry-content')
+#     soup = BeautifulSoup(res.content, 'lxml')
+#     content = soup.find('div', class_='entry-content')
     
-    if content is None:
-        return ''
+#     if content is None:
+#         return ''
 
-    # Clean up the HTML
-    paras = content.findAll('p')
-    classes_to_remove = ["sf-mobile-ads", "desktop-content", "mobile-content", "sf-nav-bottom"]
-    tags_to_remove = ["script"]
+#     # Clean up the HTML
+#     paras = content.findAll('p')
+#     classes_to_remove = ["sf-mobile-ads", "desktop-content", "mobile-content", "sf-nav-bottom"]
+#     tags_to_remove = ["script"]
     
-    for sp in content.findAll('span', class_="collapseomatic"): sp.decompose()
-    for cls in classes_to_remove:
-        for sp in content.findAll('div', class_=cls): sp.decompose()
-    for tag in tags_to_remove:
-        for sp in content.findAll(tag): sp.decompose()
+#     for sp in content.findAll('span', class_="collapseomatic"): sp.decompose()
+#     for cls in classes_to_remove:
+#         for sp in content.findAll('div', class_=cls): sp.decompose()
+#     for tag in tags_to_remove:
+#         for sp in content.findAll(tag): sp.decompose()
     
-    if len(paras) > 3:
-        for tag in paras[-3:]: tag.decompose()
+#     if len(paras) > 3:
+#         for tag in paras[-3:]: tag.decompose()
         
-    for tag in content.find_all("div"):
-        if tag.text == "advertisement": tag.extract()
+#     for tag in content.find_all("div"):
+#         if tag.text == "advertisement": tag.extract()
 
-    # Attribute cleanup
-    for tag in content.findAll(True):
-        tag.attrs.pop("class", "")
-        tag.attrs.pop("id", "")
+#     # Attribute cleanup
+#     for tag in content.findAll(True):
+#         tag.attrs.pop("class", "")
+#         tag.attrs.pop("id", "")
         
-    return content.prettify()
+#     return content.prettify()
