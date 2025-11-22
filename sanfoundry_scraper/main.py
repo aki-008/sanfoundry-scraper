@@ -1,67 +1,78 @@
+# FILE: sanfoundry_scraper/main.py
 import sys
 import time
 from argparse import ArgumentParser
-from typing import List ,Optional
+from typing import List, Optional, Dict
 from concurrent.futures import ThreadPoolExecutor
 
+# RELATIVE IMPORTS (Crucial for running as a package)
 from .pagescrape import pagescrape
-from .mcqscrape import mcqscrape_html, write_to_html
-from bs4 import BeautifulSoup
+from .mcqscrape import mcqscrape_json, write_to_json
 
-mul_threading: Optional[bool] = sys.argv[1:]
+# CLI Helper
+parser = ArgumentParser(description="A CLI Tool for scraping quizzes from SANFOUNDRY", usage="\n python main.py --url https://... ")
+parser.add_argument("--url", help="URL of quiz", type=str, default=None, dest="url")
+parser.add_argument("--thread", action="store_true", help="Uses Multithreading for scraping")
+parser.add_argument("--workers", type=int, help="Maximum number of threads", default=5)
 
-#added a little cli helper
-parser = ArgumentParser(description="A CLI Tool for scrapping quizs from SANFOUNDARY" , usage="\n python main.py --thread --workers 15", epilog="Batmobile lost the wheel lol")
-parser.add_argument("--url" , help="URL of quiz" , type=str , default=None , dest="url")
-parser.add_argument("--thread" , action="store_true" , help="Uses Multithreading for scrapping")
-parser.add_argument("--workers" , type=int , help="Maximum number of threads[ More number More speed but More Unstability]" , default=5)
-args = parser.parse_args()
+# Parse args safely
+try:
+    args = parser.parse_args()
+except:
+    args = None
 
-QUIZ_LIST: List[str] = []
+# Global list to store JSON objects
+QUIZ_LIST: List[Dict] = []
 
-def main(url: str):
-    MEGA_HTML: str = ''
-    if url == '':
-        print("Please Enter a URL!")
-        sys.exit()
-    pages = pagescrape(url)
-    for k, v in pages.items():
-        print("getting", k, "from ->", v, end=' ... ')
-        MEGA_HTML += mcqscrape_html(v)
-        print("Done!")
-
-    write_to_html(BeautifulSoup(MEGA_HTML, 'lxml'),
-                  url.split('/')[-2])
-
-#These both function is for multithreading
 def writer(url: str) -> None:
-    res: str = mcqscrape_html(url)
-    QUIZ_LIST.append(res)
+    """Scrapes a single page and appends the JSON dicts to the global list."""
+    # Uses the JSON function from mcqscrape.py
+    res: List[Dict] = mcqscrape_json(url)
+    QUIZ_LIST.extend(res)
 
 def async_main(url: str) -> None:
-    pages: List[str] = [ v for _ , v in pagescrape(url).items()]
-    with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        #This will run writer function in multithread with each quiz url
-        executor.map(writer , pages)
+    """Manages the multithreaded scraping process."""
+    print("\nStarting multithreaded JSON data extraction...")
+    
+    # Get all chapter links from the main subject page
+    pages_dict = pagescrape(url)
+    
+    # Extract just the URLs from the dictionary
+    pages: List[str] = [v for _, v in pages_dict.items()]
+    
+    if not pages:
+        print("Error: No quiz pages found or connection failed. Check URL.")
+        return
 
-    MEGA_HTML = "".join(QUIZ_LIST)
-    write_to_html(BeautifulSoup(MEGA_HTML, 'lxml'),
-                  url.split('/')[-2])
+    # Determine worker count
+    workers = args.workers if args and args.workers else 5
+
+    # Run the writer function in parallel
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        executor.map(writer, pages)
+
+    # Write the accumulated data to JSON
+    FINAL_JSON_LIST = QUIZ_LIST
+    if FINAL_JSON_LIST:
+        # Extract the subject name from URL for the filename
+        subject_name = url.strip('/').split('/')[-1]
+        write_to_json(FINAL_JSON_LIST, subject_name)
+    else:
+        print("Warning: No MCQs were extracted successfully.")
 
 def scraper():
-    command = "Enter the URL of the Page where you see links of all Subject related MCQs: "
-    PAGE_URL = args.url or input(command)
-
-    if args.thread:
-        async_main(PAGE_URL)
+    # Handle arguments or input prompt
+    if args and args.url:
+        PAGE_URL = args.url
     else:
-        main(PAGE_URL)
+        command = "Enter the URL of the Subject Page: "
+        PAGE_URL = input(command)
+
+    if not PAGE_URL:
+        print("Please enter a valid URL.")
+        sys.exit()
+
+    async_main(PAGE_URL)
 
 if __name__ == "__main__":
     scraper()
-
-"""
-I did a test run with 10 workers on this link https://www.sanfoundry.com/1000-python-questions-answers/
-Normal Function takes around 50 seconds , multithreading takes 17 seconds
-"""
-        
